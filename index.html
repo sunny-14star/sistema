@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema de Gestión Escolar | Base de Datos y Filtros</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand-wrapper">
+        <div class="brand-icon">🕊️</div>
+        <div class="brand-text">
+          <h1>Politécnico Ramón Dubert Novo</h1>
+          <p>Sistema Integral de Administración y Control Escolar</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <span id="db-status-indicator" class="db-status-badge db-status-connecting" title="Estado de la base de datos">
+          ⏳ Conectando...
+        </span>
+        <button id="btn-export-csv" class="btn btn-outline-light" title="Descargar datos en formato Excel (CSV)">
+          📥 Exportar Excel (CSV)
+        </button>
+        <button id="btn-open-add-modal" class="btn btn-primary" title="Registrar nuevo estudiante">
+          ➕ Nuevo Estudiante
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Contenedor Principal -->
+  <main class="main-container">
+
+    <!-- Tarjetas de Estadísticas / KPIs -->
+    <section class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon-wrapper icon-blue">📚</div>
+        <div class="stat-info">
+          <h3 id="stat-total">0</h3>
+          <p>Total Estudiantes</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon-wrapper icon-green">✅</div>
+        <div class="stat-info">
+          <h3 id="stat-activos">0</h3>
+          <p>Alumnos Activos</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon-wrapper icon-indigo">⭐</div>
+        <div class="stat-info">
+          <h3 id="stat-becados">0</h3>
+          <p>Alumnos Becados</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon-wrapper icon-amber">⏳</div>
+        <div class="stat-info">
+          <h3 id="stat-pendientes">0</h3>
+          <p>Inactivos / Pendientes</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Barra de Filtros y Búsqueda -->
+    <section class="controls-card">
+      <div class="controls-header">
+        <div class="controls-title">
+          <span>🔍</span>
+          <span>Búsqueda y Filtros de la Base de Datos</span>
+        </div>
+      </div>
+
+      <div class="filters-grid">
+        <!-- Buscador general por texto -->
+        <div class="form-group">
+          <label for="filter-search">Buscar por Nombre, Matrícula o Tutor</label>
+          <div class="search-input-wrapper">
+            <span class="search-icon">🔎</span>
+            <input 
+              type="text" 
+              id="filter-search" 
+              class="form-control search-input" 
+              placeholder="Ej: Sofia, ed2443, Mariana..."
+              autocomplete="on"
+            >
+            <button id="btn-clear-search" class="clear-search-btn" title="Limpiar búsqueda">&times;</button>
+          </div>
+        </div>
+
+        <!-- Filtro por Grado -->
+        <div class="form-group">
+          <label for="filter-grado">Grado / Nivel</label>
+          <select id="filter-grado" class="form-control">
+            <option value="">Todos los Grados</option>
+            <option value="3° Secundaria">3° Secundaria</option>
+            <option value="4° Secundaria">4° Secundaria</option>
+            <option value="5° Secundaria">5° Secundaria</option>
+            <option value="6° Secundaria">6° Secundaria</option>
+          </select>
+        </div>
+
+        <!-- Filtro por Sección / Grupo -->
+        <div class="form-group">
+          <label for="filter-seccion">Sección / Grupo</label>
+          <select id="filter-seccion" class="form-control">
+            <option value="">Todas</option>
+            <option value="A">Sección A</option>
+            <option value="B">Sección B</option>
+            <option value="C">Sección C</option>
+            <option value="D">Sección D</option>
+            <option value="E">Sección E</option>
+            <option value="F">Sección F</option>
+          </select>
+        </div>
+
+
+        <!-- Filtro por Estado -->
+        <div class="form-group">
+          <label for="filter-estado">Estado</label>
+          <select id="filter-estado" class="form-control">
+            <option value="">Todos</option>
+            <option value="Activo">Activo</option>
+            <option value="Becado">Becado</option>
+            <option value="Pendiente">Pendiente</option>
+            <option value="Inactivo">Inactivo</option>
+          </select>
+        </div>
+
+        <!-- Botón para reiniciar filtros -->
+        <button id="btn-reset-filters" class="btn btn-secondary" title="Limpiar todos los filtros">
+          🔄 Limpiar
+        </button>
+      </div>
+    </section>
+
+    <!-- Tabla Principal de Estudiantes -->
+    <section class="table-card">
+      <div class="table-toolbar">
+        <div class="table-title">
+          <span>📋 Registro de Estudiantes</span>
+          <span id="results-count" class="results-badge">0 Alumnos</span>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="data-table" id="students-table">
+          <thead>
+            <tr>
+              <th class="sortable" data-sort="matricula">Matrícula ⬍</th>
+              <th class="sortable" data-sort="nombre">Estudiante ⬍</th>
+              <th class="sortable" data-sort="grado">Grado y Sección ⬍</th>
+              <th>Tutor / Contacto</th>
+              <th class="sortable" data-sort="estado">Estado ⬍</th>
+              <th style="text-align: center;">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="students-table-body">
+            <!-- Filas generadas dinámicamente desde IndexedDB -->
+          </tbody>
+        </table>
+
+        <!-- Mensaje cuando no hay resultados de búsqueda -->
+        <div id="empty-state" class="empty-state" style="display: none;">
+          <div class="empty-icon">📂</div>
+          <h4>No se encontraron estudiantes</h4>
+          <p>No hay registros que coincidan con los criterios de búsqueda o filtros seleccionados.</p>
+          <button id="btn-empty-clear" class="btn btn-secondary btn-sm">Restablecer filtros de búsqueda</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Pie de Página -->
+  <footer class="app-footer">
+    <p>© 2026 - Sistema de Gestión Escolar | Base de datos persistente en el navegador (IndexedDB)</p>
+  </footer>
+
+  <!-- ================= MODALES ================= -->
+
+  <!-- Modal: Agregar o Editar Estudiante -->
+  <div id="modal-student" class="modal-overlay">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="modal-title">➕ Registrar Nuevo Estudiante</h3>
+        <button class="modal-close-btn" data-close-modal title="Cerrar">&times;</button>
+      </div>
+      <form id="student-form">
+        <div class="modal-body">
+          <input type="hidden" id="form-student-id">
+
+          <!-- Fila: Matrícula y Nombre -->
+          <div class="form-row">
+            <div class="form-group">
+              <label for="form-matricula">Matrícula / Código *</label>
+              <div style="display: flex; gap: 0.5rem;">
+                <input 
+                  type="text" 
+                  id="form-matricula" 
+                  class="form-control" 
+                  placeholder="Ej: ESC-2024-007" 
+                  required
+                >
+                <button type="button" id="btn-gen-matricula" class="btn btn-secondary btn-sm" title="Generar código automático">
+                  Auto
+                </button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="form-nombre">Nombre Completo del Estudiante *</label>
+              <input 
+                type="text" 
+                id="form-nombre" 
+                class="form-control" 
+                placeholder="Nombre y apellidos" 
+                required
+              >
+            </div>
+          </div>
+
+          <!-- Fila: Grado y Sección -->
+          <div class="form-row">
+            <div class="form-group">
+              <label for="form-grado">Grado / Nivel *</label>
+              <select id="form-grado" class="form-control" required>
+                <option value="">Seleccione...</option>
+                <option value="3° Secundaria">3° Secundaria</option>
+                <option value="4° Secundaria">4° Secundaria</option>
+                <option value="5° Secundaria">5° Secundaria</option>
+                <option value="6° Secundaria">6° Secundaria</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="form-seccion">Sección / Grupo *</label>
+              <select id="form-seccion" class="form-control" required>
+                <option value="A">Sección A</option>
+                <option value="B">Sección B</option>
+                <option value="C">Sección C</option>
+                <option value="D">Sección D</option>
+                <option value="E">Sección E</option>
+                <option value="F">Sección F</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Fila: Fecha Nacimiento, Género y Estado -->
+          <div class="form-row-3">
+            <div class="form-group">
+              <label for="form-fecha-nac">Fecha Nacimiento</label>
+              <input type="date" id="form-fecha-nac" class="form-control">
+            </div>
+            <div class="form-group">
+              <label for="form-genero">Género</label>
+              <select id="form-genero" class="form-control">
+                <option value="Femenino">Femenino</option>
+                <option value="Masculino">Masculino</option>
+                <option value="Otro">Otro</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="form-estado">Estado Escolar *</label>
+              <select id="form-estado" class="form-control" required>
+                <option value="Activo">Activo</option>
+                <option value="Becado">Becado</option>
+                <option value="Pendiente">Pendiente</option>
+                <option value="Inactivo">Inactivo</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Fila: Tutor, Teléfono y Correo -->
+          <div class="form-row-3">
+            <div class="form-group">
+              <label for="form-tutor">Nombre del Tutor / Padre</label>
+              <input 
+                type="text" 
+                id="form-tutor" 
+                class="form-control" 
+                placeholder="Nombre del apoderado"
+              >
+            </div>
+            <div class="form-group">
+              <label for="form-telefono">Teléfono de Contacto</label>
+              <input 
+                type="tel" 
+                id="form-telefono" 
+                class="form-control" 
+                placeholder="Ej: 555-123-4567"
+              >
+            </div>
+            <div class="form-group">
+              <label for="form-email">Correo Electrónico</label>
+              <input 
+                type="email" 
+                id="form-email" 
+                class="form-control" 
+                placeholder="correo@ejemplo.com"
+              >
+            </div>
+          </div>
+
+          <!-- Fila: Observaciones -->
+          <div class="form-row-full form-group">
+            <label for="form-observaciones">Observaciones / Notas Médicas o Académicas</label>
+            <textarea 
+              id="form-observaciones" 
+              class="form-control" 
+              placeholder="Alergias, méritos, condiciones particulares o avisos relevantes..."
+            ></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close-modal>Cancelar</button>
+          <button type="submit" class="btn btn-primary" id="btn-save-student">💾 Guardar Estudiante</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Ver Ficha Detallada del Estudiante -->
+  <div id="modal-view" class="modal-overlay">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>📄 Expediente del Alumno</h3>
+        <button class="modal-close-btn" data-close-modal title="Cerrar">&times;</button>
+      </div>
+      <div class="modal-body" id="student-detail-content">
+        <!-- Renderizado dinámico de la ficha escolar -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-close-modal>Cerrar</button>
+        <button type="button" id="btn-print-card" class="btn btn-outline-light" style="background:#1e3a8a; color:#fff;">
+          🖨️ Imprimir Ficha
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Confirmar Eliminación -->
+  <div id="modal-delete" class="modal-overlay">
+    <div class="modal-dialog modal-dialog-sm">
+      <div class="modal-header">
+        <h3>⚠️ Confirmar Eliminación</h3>
+        <button class="modal-close-btn" data-close-modal title="Cerrar">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>¿Estás seguro de que deseas eliminar permanentemente de la base de datos al estudiante <strong id="delete-student-name"></strong>?</p>
+        <p style="margin-top: 0.5rem; font-size: 0.85rem; color: var(--danger-text);">Esta acción no se puede deshacer.</p>
+        <input type="hidden" id="delete-student-id">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-close-modal>Cancelar</button>
+        <button type="button" id="btn-confirm-delete" class="btn btn-danger">🗑️ Eliminar Definitivamente</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contenedor de Alertas Toast -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="db.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
